@@ -1,10 +1,11 @@
 import User from '../views/user.vue';
-import Manager from '../views/manager.vue';
+import Manager from '../views/manager_big.vue';
+
 
 export default[
     {
         path:'/',
-        redirect:'/user'
+        redirect:'/manager'
     },
     {
         path:'/user',

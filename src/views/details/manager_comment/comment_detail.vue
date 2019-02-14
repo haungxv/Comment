@@ -1,18 +1,29 @@
 <template>
     <div>
         <h1>评审详情</h1>
-        <h5>{{mes}}</h5>
+        <h5>任务名：{{name}}</h5>
+        <p>任务简介：{{desc}}</p>
         <table>
             <th>字段（创建后不可更改）</th>
             <tr>
-                <td>字段名</td>
-                <td>类型</td>
-                <td>范围</td>
+                <td>问题顺序</td>
+                <td>问题名称</td>
+                <td>问题类型</td>
+                <td>评分最小值</td>
+                <td>评分最大值</td>
+                <td>递增的数值</td>
+                <td>是否支持多选</td>
+                <td>多选题的选项</td>
             </tr>
-            <tr v-for="item in fields">
-                <td>{{item.name}}</td>
-                <td>{{item.type}}</td>
-                <td>{{item.vary}}</td>
+            <tr v-for="(item,key) in fields[0].content">
+                <td>{{item.id}}</td>
+                <td>{{key}}</td>
+                <td>{{item.field_type}}</td>
+                <td>{{item.min}}</td>
+                <td>{{item.max}}</td>
+                <td>{{item.step}}</td>
+                <td>{{item.multi_choice}}</td>
+                <td>{{item.choices}}</td>
             </tr>
         </table>
         <br/>
@@ -53,9 +64,11 @@
 </template>
 
 <script>
+    import axios from 'axios';
+
     export default {
         name: "comment_detail",
-        props: ['mes'],
+        props: ['name','desc','id'],
         data() {
             return {
                 fields: [
@@ -118,6 +131,31 @@
             detail_back() {
                 this.$emit('back')
             }
+        },
+        mounted(){
+            let qs = require('qs');
+            let instance = axios.create({
+                headers: {'content-type': 'application/x-www-form-urlencoded'}
+            });
+            instance.get("http://39.108.147.179:802/api/v1/work/get/"+this.id)
+                .then((res) => {
+                    if (res.status === 200) {
+                        console.log("获取任务详情成功！");
+                        console.log(res.data.data.questions);
+                        this.fields=res.data.data.questions;
+                        console.log(this.fields);
+                        console.log(this.fields[0].content);
+
+                        console.log(this.fields[0].content.创意分);
+                        // this.$options.methods.refresh();
+                        // this.$router.go(0);
+                        // this.$emit('get_user');
+                        // this.$forceUpdate();
+                    }
+                })
+                .catch((err) => {
+                    console.log(err)
+                })
         }
     }
 </script>
