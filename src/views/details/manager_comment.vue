@@ -17,24 +17,20 @@
                     <td @click="check_detail(task.name,task.desc,task.id)" class="manager_comment_check_detail">查看详情
                     </td>
                     <td @click="check_user(task.name)" class="manager_comment_check_user">查看详情</td>
-                    <td @click="sub(list.id)" class="manager_comm_sub">删除</td>
-                    <td @click="change(list.id,list.user)" class="manager_comm_Change">修改</td>
+                    <td @click="sub(task.id)" class="manager_comm_sub">删除</td>
+                    <td @click="change(task.id,task.name,task.expired,task.desc)" class="manager_comm_Change">修改</td>
                 </tr>
             </table>
             <div class="manager_comm_add" @click="add">添加任务</div>
             <comment-add @back="back" v-if="show_add"></comment-add>
-            <div class="manager_comm_change" @click="change_up">修改任务</div>
-            <form v-show="show_change">
-                <label for="ch_nick">昵称：</label>
-                <input v-model="ch_nick" id="ch_nick" type="text"><br/>
-                <label for="ch_user">用户名：</label>
-                <input v-model="ch_user" id="ch_user" type="text"><br/>
-                <label for="ch_password">密码：</label>
-                <input v-model="ch_password" id="ch_password" type="text"><br/>
-                <label for="ch_email">邮箱：</label>
-                <input v-model="ch_email" id="ch_email" type="text">
-                <div class="manager_comm_change_change" @click="change_change">确认修改</div>
-            </form>
+            <div class="manager_comm_change" @click="change_up">修改任务(只可修改任务名，过期时间和任务描述)</div>
+            <comment-change @back="back"
+                            :id="ch_id"
+                            :name="ch_user"
+                            :time="ch_time"
+                            :desc="ch_desc"
+                            v-if="show_change">
+            </comment-change>
         </div>
         <div id="manager_comment_check">
             <comment-user :mes="comment_user_mes" @back="back" v-if="show_user"></comment-user>
@@ -53,18 +49,18 @@
     import commentUser from './manager_comment/comment_user.vue'
     import commentDetail from './manager_comment/comment_detail.vue'
     import commentAdd from './manager_comment/comment_add.vue'
+    import commentChange from './manager_comment/comment_change.vue'
 
 
     export default {
         name: "manager_comment",
-        components: {commentUser, commentDetail, commentAdd},
+        components: {commentUser, commentDetail, commentAdd, commentChange},
         data() {
             return {
-                ch_password: '',
-                ch_email: "",
-                ch_nick: '',
-                ch_user: '',
-                ch_id: '',
+                ch_user:'',
+                ch_id:'',
+                ch_time:'',
+                ch_desc:'',
                 show_add: false,
                 show_change: false,
                 tasks: [
@@ -108,6 +104,7 @@
                 this.show_user = false;
                 this.show_detail = false;
                 this.show_add = false;
+                this.show_change = false;
             },
             getUser() {
                 var vm = this;
@@ -135,14 +132,11 @@
                 let instance = axios.create({
                     headers: {'content-type': 'application/x-www-form-urlencoded'}
                 });
-                let data = qs.stringify({
-                    id: id
-                });
-                instance.get("http://39.108.147.179:802/api/v1/user/delete/" + id)
+                instance.get("http://39.108.147.179:802/api/v1/work/delete/" + id)
                     .then((res) => {
                         if (res.status === 200) {
                             console.log("删除成功！");
-                            this.$emit("sub", id);
+                            // this.$emit("sub", id);
                         }
                     })
                     .catch((err) => {
@@ -152,42 +146,15 @@
             add() {
                 this.show_add = !this.show_add;
             },
-            change(id, name) {
-                this.show_change = true;
+            change(id, name,time,desc) {
+                this.show_change = !this.show_change;
                 this.ch_user = name;
                 this.ch_id = id;
+                this.ch_time=time;
+                this.ch_desc=desc;
             },
             change_up() {
                 this.show_change = false;
-            },
-            change_change() {
-                let qs = require('qs');
-                let instance = axios.create({
-                    headers: {'content-type': 'application/x-www-form-urlencoded'}
-                });
-                let data = qs.stringify({
-                    "username": this.ch_user,
-                    "password": this.ch_password,
-                    "email": this.ch_email,
-                    "nickname": this.ch_nick
-                });
-                instance.post("http://39.108.147.179:802/api/v1/user/modify/" + this.ch_id, data)
-                    .then((res) => {
-                        if (res.status === 200) {
-                            console.log("修改成功！");
-                            // this.$options.methods.refresh();
-                            // this.$router.go(0);
-                            // this.$emit('get_user');
-                            // this.$forceUpdate();
-                        }
-                        this.ch_user = '';
-                        this.ch_nick = '';
-                        this.ch_password = '';
-                        this.ch_email = '';
-                    })
-                    .catch((err) => {
-                        console.log(err)
-                    })
             },
 
         },
