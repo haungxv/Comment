@@ -1,68 +1,53 @@
 <template>
-    <div>
-        <table>
-            <tr>
-                <td>昵称</td>
-                <td>用户名</td>
-                <td>密码</td>
-                <td>邮箱</td>
-                <td colspan="2">操作</td>
-            </tr>
-            <tr v-for="list in userList" :key="list.id">
-                <td>{{list.nickname}}</td>
-                <td>{{list.username}}</td>
-                <td>{{list.password}}</td>
-                <td>{{list.email}}</td>
-                <td @click="sub(list.id)" class="manager_user_sub">删除</td>
-                <td @click="change(list.id,list.user)" class="manager_user_Change">修改</td>
-            </tr>
-        </table>
-        <div class="manager_user_add" @click="add">添加用户</div>
-        <form v-show="show_add">
-            <label for="nick">昵称：</label>
-            <input v-model="add_nick" id="nick" type="text"><br/>
-            <label for="user">用户名：</label>
-            <input v-model="add_user" id="user" type="text"><br/>
-            <label for="password">密码：</label>
-            <input v-model="add_password" id="password" type="text"><br/>
-            <label for="email">邮箱：</label>
-            <input v-model="add_email" id="email" type="text">
-            <div class="manager_user_add_add" @click="add_add">确认添加</div>
-        </form>
-        <div class="manager_user_change" @click="change_up">修改用户（用户名不可修改）</div>
-        <form v-show="show_change">
-            <label for="ch_nick">昵称：</label>
-            <input v-model="ch_nick" id="ch_nick" type="text"><br/>
-            <label for="ch_user">用户名：</label>
-            <input v-model="ch_user" id="ch_user" type="text"><br/>
-            <label for="ch_password">密码：</label>
-            <input v-model="ch_password" id="ch_password" type="text"><br/>
-            <label for="ch_email">邮箱：</label>
-            <input v-model="ch_email" id="ch_email" type="text">
-            <div class="manager_user_change_change" @click="change_change">确认修改</div>
-        </form>
+    <div class="user">
+        <div class="over" v-if="showUserMask" @click="down_every"></div>
+        <div class="title">
+            <div class="title_left" @click="show_add_change(1)">点此添加用户</div>
+            <div class="title_right">可以对用户进行<span>修改</span>和<span>删除</span>操作</div>
+        </div>
+        <div class="info"
+             v-for="list in userLists"
+             :key="list.id">
+            <div class="info_nick">昵称：{{list.nickname}}</div>
+            <div class="info_name">用户名：{{list.username}}</div>
+            <div class="info_email">邮箱：{{list.email}}</div>
+            <div @click="show_change(list.id,list.nickname,list.username,list.email)" class="info_change">修改</div>
+            <div @click="sub(list.id)" class="info_sub">删除</div>
+        </div>
+        <user-add @addSucc="succ" v-if="showAdd"></user-add>
+        <user-change :id="oldId"
+                     :nick="oldNick"
+                     :name="oldName"
+                     :email="oldEmail"
+                     @changeSucc="succ"
+                     v-if="showChange">
+        </user-change>
     </div>
 </template>
 
 <script>
+
+    import userAdd from './manager_user/add.vue'
+    import userChange from './manager_user/change.vue'
+
     import axios from 'axios';
+    import {
+        mapState,
+        mapMutations,
+    } from 'vuex'
 
     export default {
         name: "manager_user",
-        props: ['userList', 'delecount', 'delenumber', 'addcount', 'addnumber'],
+        components: {userAdd, userChange},
         data() {
             return {
-                add_user: '',
-                add_password: '',
-                add_email: "",
-                add_nick: '',
-                ch_password: '',
-                ch_email: "",
-                ch_nick: '',
-                ch_user:'',
-                ch_id:'',
-                show_add: false,
-                show_change: false,
+                showAdd: false,
+                showChange: false,
+                showUserMask: false,
+                oldId: '',
+                oldNick: '',
+                oldName: '',
+                oldEmail: ''
             }
         },
         methods: {
@@ -77,139 +62,201 @@
                 instance.get("http://39.108.147.179:802/api/v1/user/delete/" + id)
                     .then((res) => {
                         if (res.status === 200) {
-                            console.log("删除成功！");
-                            this.$emit("sub", id);
+                            alert("删除成功！");
+                            this['user/deleteUser'](id);
                         }
                     })
                     .catch((err) => {
                         console.log(err)
                     })
             },
-            add() {
-                this.show_add = !this.show_add;
+            show_add_change(a) {
+                this.showUserMask = true;
+                if (a === 1) {
+                    this.showAdd = true;
+                } else if (a === 2) {
+                    this.showChange = true;
+                }
             },
-            change(id,name) {
-                this.show_change = true;
-                this.ch_user=name;
-                this.ch_id=id;
+            down_every() {
+                this.showAdd = false;
+                this.showChange = false;
+                this.showUserMask = false;
             },
-            change_up() {
-                this.show_change = false;
+            show_change(id, nick, name, email) {
+                this.show_add_change(2);
+                this.oldId = id;
+                this.oldNick = nick;
+                this.oldName = name;
+                this.oldEmail = email;
             },
-            add_add() {
+            succ() {
+                this.get_user();
+                this.down_every();
+            },
+            get_user() {
+                var vm = this;
                 let qs = require('qs');
                 let instance = axios.create({
                     headers: {'content-type': 'application/x-www-form-urlencoded'}
                 });
-                let data = qs.stringify({
-                    "username": this.add_user,
-                    "password": this.add_password,
-                    "email": this.add_email,
-                    "nickname": this.add_nick
-                });
-                instance.post("http://39.108.147.179:802/api/v1/user/add/", data)
+                instance.get("http://39.108.147.179:802/api/v1/user/all/")
                     .then((res) => {
-                        if (res.status === 200) {
-                            console.log("添加成功！");
-                            // this.$options.methods.refresh();
-                            this.$router.go(0);
-                            // this.$emit('get_user');
-                            // this.$forceUpdate();
+                        if (res.data.status === 200) {
+                            this['user/setAllUsers'](res.data.data);
                         }
-                        this.add_user = '';
-                        this.add_nick = '';
-                        this.add_password = '';
-                        this.add_email = '';
                     })
                     .catch((err) => {
                         console.log(err)
                     })
             },
-            change_change(){
-                let qs = require('qs');
-                let instance = axios.create({
-                    headers: {'content-type': 'application/x-www-form-urlencoded'}
-                });
-                let data = qs.stringify({
-                    "username": this.ch_user,
-                    "password": this.ch_password,
-                    "email": this.ch_email,
-                    "nickname": this.ch_nick
-                });
-                instance.post("http://39.108.147.179:802/api/v1/user/modify/"+this.ch_id,data)
-                    .then((res) => {
-                        if (res.status === 200) {
-                            console.log("修改成功！");
-                            // this.$options.methods.refresh();
-                            // this.$router.go(0);
-                            // this.$emit('get_user');
-                            // this.$forceUpdate();
-                        }
-                        this.ch_user = '';
-                        this.ch_nick = '';
-                        this.ch_password = '';
-                        this.ch_email = '';
-                    })
-                    .catch((err) => {
-                        console.log(err)
-                    })
-            },
-            refresh() {
-                // console.log("2312");
-                this.$router.go(0);
-            }
+            ...mapMutations(['user/setAllUsers','user/deleteUser']),
+        },
+        computed: {
+            ...mapState({
+                userLists: state => state.user.userLists,
+            })
         },
         mounted() {
-            if (this.delenumber != this.delecount) {
-                this.$emit('get_user');
-            }
+            this.get_user();
         }
     }
 </script>
 
 <style scoped>
-    table {
-        /*margin: 0 auto;*/
-        /*margin-top: 50px;*/
+    .user {
+        background-color: #f4f7f6;
+        padding: 0 70px 20px;
+        border: 1px solid #f4f7f6;
     }
 
-    td {
-        border: 1px solid black;
+    .user .over {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        background-color: #000;
+        opacity: 0.7;
+        -moz-opacity: 0.7;
+        z-index: 303;
+    }
+
+    .user .title {
+        width: 1100px;
+        margin: 30px auto 20px;
+    }
+
+    .user .title:after {
+        display: block;
+        content: '';
+        clear: both;
+        overflow: hidden;
+        visibility: hidden;
+        height: 0;
+    }
+
+    .title .title_left {
+        float: left;
+        margin-left: 10px;
+        cursor: pointer;
+        font-size: 1.1em;
+        color: rgb(67, 210, 207)
+    }
+
+    .title .title_right {
+        letter-spacing: 0.1em;
+        margin-right: 10px;
+        float: right;
+    }
+
+    .user .title span {
+        font-weight: 600;
+        font-size: 1.1em;
+    }
+
+    .info {
+        margin: 1px auto;
+        width: 1100px;
+        border: 1px solid #f4f7f6;
+        height: 80px;
+        background-color: white;
+    }
+
+    .info:after {
+        display: block;
+        clear: both;
+        height: 0;
+        overflow: hidden;
+        visibility: hidden;
+        content: ''
+    }
+
+    .info_nick {
+        width: 210px;
+        height: 50px;
+        line-height: 50px;
+        margin-top: 15px;
+        margin-left: 30px;
+        float: left;
+    }
+
+    .info_name {
+        width: 260px;
+        height: 50px;
+        line-height: 50px;
+        margin-top: 15px;
+        float: left;
+    }
+
+    .info_email {
+        width: 310px;
+        height: 50px;
+        line-height: 50px;
+        margin-top: 15px;
+        float: left;
+    }
+
+    .info_change {
+        border: 1px solid white;
+        color: rgb(67, 220, 207);
+        width: 75px;
+        letter-spacing: 0.1em;
+        text-indent: 0.1em;
+        margin-top: 25px;
+        margin-left: 20px;
         text-align: center;
+        float: left;
+        height: 30px;
+        line-height: 30px;
+        border-radius: 15px;
+        transition: 0.2s;
+        cursor:pointer;
     }
 
-    .manager_user_sub,.manager_user_Change {
-        cursor: pointer;
+    .info_change:hover {
+        border: 1px solid rgb(67, 220, 207);
     }
 
-    .manager_user_add,.manager_user_change {
-        /*border: 1px solid black;*/
-        cursor: pointer;
-        margin-top: 20px;
-        /*text-align:center;*/
+    .info_sub {
+        border: 1px solid white;
+        color: #df6c4f;
+        width: 75px;
+        letter-spacing: 0.1em;
+        text-indent: 0.1em;
+        margin-top: 25px;
+        margin-left: 45px;
+        text-align: center;
+        float: left;
+        height: 30px;
+        line-height: 30px;
+        border-radius: 15px;
+        transition: 0.2s;
+        cursor:pointer;
     }
 
-    form {
-        width: 270px;
-        /*border:1px solid black;*/
-        /*margin:0 auto;*/
-        /*margin-top:30px;*/
-    }
-
-    form label {
-        width: 25%;
-        display: inline-block;
-        /*border:1px solid black;*/
-        text-align: right;
-    }
-
-    form input {
-        width: 68%;
-    }
-
-    .manager_user_add_add,.manager_user_change_change{
-        cursor: pointer;
-        margin-top: 10px;
-        /*text-align:center;*/
+    .info_sub:hover {
+        border: 1px solid #df6c4f;
     }
 </style>

@@ -14,7 +14,7 @@
         components: {Sign, Manager},
         data(){
             return{
-                show_sign:false
+                show_sign:false,
             }
         },
         methods:{
